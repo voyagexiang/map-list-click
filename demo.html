@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no"/>
+    <title>Sample</title>
+
+    <link rel="stylesheet" href="https://js.arcgis.com/4.18/esri/themes/light/main.css"/>
+    <script src="https://js.arcgis.com/4.18/"></script>
+
+    <style>
+        html,
+        body,
+        #viewDiv {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        .listView {
+            position: absolute;
+            right: 0px;
+            top: 0px;
+            width: 410px;
+            height: 100%;
+            background: inherit;
+            background-color: rgba(6, 38, 68, 0.956862745098039);
+            box-sizing: border-box;
+            border-width: 1px;
+            border-style: solid;
+            border-color: rgba(0, 63, 98, 1);
+            border-radius: 0px;
+            -moz-box-shadow: none;
+            -webkit-box-shadow: none;
+            box-shadow: none;
+            color: white;
+            overflow-y: scroll;
+        }
+
+        .leftListView {
+            left: 0;
+        }
+
+        .listClass {
+            border: solid red 1px
+        }
+
+        .pointClass {
+            top: 320px;
+            left: 0px;
+        }
+
+        .text {
+            border-width: 0px;
+            position: absolute;
+            left: 24px;
+            top: 20px;
+            width: 474px;
+            word-wrap: break-word;
+        }
+
+        #ulClass {
+            border-width: 0px;
+            position: absolute;
+            left: 24px;
+            top: 40px;
+            width: 474px;
+            word-wrap: break-word;
+            overflow-y: scroll;
+            height: 256px;
+        }
+
+        #ulLeftClass {
+            border-width: 0px;
+            position: absolute;
+            left: 24px;
+            top: 40px;
+            width: 474px;
+            word-wrap: break-word;
+            overflow-y: scroll;
+            height: 256px;
+        }
+
+        #atclass {
+            border-width: 0px;
+            position: absolute;
+            left: 24px;
+            top: 70px;
+            width: 360px;
+            word-wrap: break-word;
+            height: 256px;
+        }
+
+        #atLeftClass {
+            border-width: 0px;
+            position: absolute;
+            left: 24px;
+            top: 70px;
+            width: 360px;
+            word-wrap: break-word;
+            height: 256px;
+        }
+
+        ul > li > span {
+            width: 110px;
+            display: inline-block;
+        }
+    </style>
+
+    <script>
+        function addLi(data, view, ul, divposition) {
+            data.forEach(item => {
+                let li = document.createElement("li");
+                li.value = item
+                let span = document.createElement("span");
+                span.innerText = item.id
+                li.appendChild(span)
+                let span1 = document.createElement("span");
+                span1.innerText = item.name
+                li.appendChild(span1)
+                let span2 = document.createElement("span");
+                span2.innerText = item.count
+                li.appendChild(span2)
+
+                ul.appendChild(li)
+            })
+            // let itemli = document.getElementsByTagName("li");
+            let uldiv = document.getElementById("ulClass");
+
+            if (divposition === 'ulLeftClass') {
+                uldiv = document.getElementById("ulLeftClass");
+            }
+            for (let i = 0; i < uldiv.childNodes.length; i++) {
+                uldiv.childNodes[i].onclick = function (n) {
+                    return function () {
+                        let center = data[n - 3].position
+                        // view.zoom = 16
+                        view.goTo({
+                            center: center
+                        })
+                            .catch(function (error) {
+                                if (error.name != "AbortError") {
+                                    console.error(error);
+                                }
+                            });
+                    }
+                }(i)
+            }
+        }
+
+        require([
+                "esri/Map",
+                "esri/views/MapView",
+                "esri/layers/FeatureLayer",
+                "esri/tasks/QueryTask",
+                "esri/tasks/support/Query",
+                "esri/tasks/IdentifyTask",
+                "esri/tasks/support/IdentifyParameters",
+                "esri/layers/GraphicsLayer",
+                "esri/Graphic"],
+            function (Map, MapView, FeatureLayer, QueryTask, Query, IdentifyTask, IdentifyParameters, GraphicsLayer, Graphic) {
+
+                let map = new Map({
+                    basemap: "hybrid"
+                });
+
+                let view = new MapView({
+                    container: "viewDiv",
+                    map: map,
+                    center: [113, 33.9],
+                    zoom: 11,
+                });
+
+                /********************
+                 * Add feature layer
+                 ********************/
+
+                    // Carbon storage of trees in Warren Wilson College.
+                let featureLayer = new FeatureLayer({
+                        url: "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/Landscape_Trees/FeatureServer/0"
+                    });
+                let baofeng0 = new FeatureLayer({
+                    url: "http://10.110.2.166:6080/arcgis/rest/services/bfonemap/baofeng/MapServer/0"
+                });
+                let baofeng1 = new FeatureLayer({
+                    url: "http://10.110.2.166:6080/arcgis/rest/services/bfonemap/baofeng/MapServer/1"
+                });
+
+                // Carbon storage of trees in Warren Wilson College.
+                let edu_school = new FeatureLayer({
+                    url: "http://10.110.2.166:6080/arcgis/rest/services/bfonemap/edu_school/MapServer/0"
+                });
+
+                edu_school.renderer = {
+                    type: 'simple',  // autocasts as new SimpleRenderer()
+                    // symbol:item.render.symbol
+                    symbol: {
+                        // url: 'data:image/png;base64,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',
+                        url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADkAAABBCAYAAABraQwpAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyNpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDYuMC1jMDAyIDc5LjE2NDM2MCwgMjAyMC8wMi8xMy0wMTowNzoyMiAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIDIxLjEgKFdpbmRvd3MpIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjNGRTM1QzE4NzU3NDExRUJBRjYxRkU4Q0MzQTNBMDJDIiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOjNGRTM1QzE5NzU3NDExRUJBRjYxRkU4Q0MzQTNBMDJDIj4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6M0ZFMzVDMTY3NTc0MTFFQkFGNjFGRThDQzNBM0EwMkMiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6M0ZFMzVDMTc3NTc0MTFFQkFGNjFGRThDQzNBM0EwMkMiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz6bdDhrAAAIyUlEQVR42tyae3DU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',
+                        width: '40',
+                        height: '40',
+                        type: "picture-marker"
+                    }
+                }
+
+                const labelClass = {
+                    // autocasts as new LabelClass()
+                    symbol: {
+                        type: "text", // autocasts as new TextSymbol()
+                        color: "green",
+                        font: {
+                            // autocast as new Font()
+                            family: "Playfair Display",
+                            size: 12,
+                            weight: "bold"
+                        }
+                    },
+                    labelPlacement: "center-center",
+                    labelExpressionInfo: {
+                        expression: "$feature.CLS_SIZE"
+                    }
+                };
+
+                edu_school.labelingInfo = [labelClass]
+                map.add(featureLayer);
+                map.add(baofeng0);
+                map.add(baofeng1);
+                map.add(edu_school);
+
+                //模拟接口获取数据
+                let ulLeft = document.getElementById('ulLeftClass')
+                let leftData = [
+                    {id: 0, name: '宝丰', count: '10', position: [113, 33.9]},
+                    {id: 1, name: '宝丰1', count: '11', position: [113.1, 33.9]},
+                    {id: 2, name: '宝丰2', count: '12', position: [113.2, 33.9]},
+                    {id: 3, name: '宝丰3', count: '13', position: [113.3, 33.9]},
+                ]
+                addLi(leftData, view, ulLeft, 'ulLeftClass')
+
+                let graphics = []
+                leftData.forEach(item => {
+                    // Add graphic when GraphicsLayer is constructed
+                    let point = {
+                        type: "point", // autocasts as new Point()
+                        longitude: item.position[0],
+                        latitude: item.position[1]
+                    };
+
+                    // Create a symbol for drawing the point
+                    let markerSymbol = {
+                        type: "simple-marker", // autocasts as new SimpleMarkerSymbol()
+                        color: [226, 119, 40],
+                        outline: {
+                            // autocasts as new SimpleLineSymbol()
+                            color: [255, 255, 255],
+                            width: 2
+                        }
+                    };
+
+                    let polylineAtt = {
+                        Id: item.id,
+                        NAME: item.name,
+                        Count: item.count,
+                        Position: item.position,
+                    };
+                    // Create a graphic and add the geometry and symbol to it
+                    let pointGraphic = new Graphic({
+                        geometry: point,
+                        symbol: markerSymbol,
+                        attributes: polylineAtt
+                    });
+
+                    graphics.push(pointGraphic)
+
+
+                })
+
+                let graphicsLayer = new GraphicsLayer({
+                    graphics: graphics
+                });
+                map.add(graphicsLayer);
+
+
+                //图层中获取数据
+                let edu_school_url = 'http://10.110.2.166:6080/arcgis/rest/services/bfonemap/edu_school/MapServer/0'
+                let queryTask = new QueryTask({
+                    url: edu_school_url
+                });
+                //查询条件
+                let query = new Query();
+                query.returnGeometry = true;
+                query.outFields = ["*"];
+                query.where = "1=1";  // 返回所有数据
+
+                // When resolved, returns features and graphics that satisfy the query.
+                queryTask.execute(query).then(function (results) {
+                    let data = []
+                    results.features.forEach((item, index) => {
+                        data.push({
+                            id: index,
+                            name: item.attributes.NAME,
+                            count: item.attributes.CLS_SIZE,
+                            position: [item.geometry.x, item.geometry.y]
+                        })
+                    })
+                    let ul = document.getElementById('ulClass')
+
+                    addLi(data, view, ul)
+                });
+
+                //    空间查询
+                let identifyTask, params;
+                view.when(function () {
+                    view.on("click", executeIdentifyTask);
+                    view.on('click', function (event) {
+                        view.hitTest(event).then(function (response) {
+                            if (response.results.length) {
+                                let graphic = response.results.filter(function (result) {
+                                    return result.graphic.layer === graphicsLayer;
+                                })[0].graphic;
+                                console.log(graphic.geometry);
+                                showGraphicAttributes(graphic.attributes)
+                            }
+                        });
+
+                    })
+                    let edu_school_url = 'http://10.110.2.166:6080/arcgis/rest/services/bfonemap/edu_school/MapServer'
+
+                    // Create identify task for the specified map service
+                    identifyTask = new IdentifyTask({url: edu_school_url});
+
+                    // Set the parameters for the Identify
+                    params = new IdentifyParameters();
+                    params.tolerance = 13;
+                    // params.layerIds = [0, 1, 2];
+                    params.layerOption = "top";
+                    params.width = view.width;
+                    params.height = view.height;
+                });
+
+                function executeIdentifyTask(event) {
+                    // Set the geometry to the location of the view click
+                    params.geometry = event.mapPoint;
+                    params.mapExtent = view.extent;
+                    document.getElementById("viewDiv").style.cursor = "wait";
+                    identifyTask
+                        .execute(params)
+                        .then(function (response) {
+                            let results = response.results;
+                            if (results.length > 0) {
+                                let feature = results[0].feature;
+                                let attributes = feature.attributes
+                                return attributes;
+                            }
+                        })
+                        .then(showAttributes); // Send the array of features to showPopup()
+
+                    // Shows the results of the Identify in a popup once the promise is resolved
+                }
+
+                function showAttributes(response) {
+                    if (!response) return null;
+                    let att = document.getElementById('atclass')
+                    att.innerHTML = `<div><span>名称：  </span>${response.NAME}</div>`
+                        + `<div><span>地址：  </span>${response.ADDRESS}</div>`
+                        + `<div><span>型号：  </span>${response.CLS_SIZE}</div>`
+                        + `<div><span>id：  </span>${response.FID}</div>`
+                        + `<div><span>类型：  </span>${response.PLANTYPE}</div>`
+                        + `<div><span>形状：  </span>${response.Shape}</div>`
+                        + `<div><span>电话：  </span>${response.TEL}</div>`
+                        + `<div><span>X：  </span>${response.X}</div>`
+                        + `<div><span>Y：  </span>${response.Y}</div>`
+                    console.log(response)
+
+
+                    document.getElementById("viewDiv").style.cursor = "auto";
+                }
+
+                function showGraphicAttributes(response) {
+                    if (!response) return null;
+                    let att = document.getElementById('atLeftClass')
+                    att.innerHTML = `<div><span>名称：  </span>${response.NAME}</div>`
+                        + `<div><span>数量：  </span>${response.Count}</div>`
+                        + `<div><span>id：  </span>${response.Id}</div>`
+                        + `<div><span>地址：  </span>${response.Position}</div>`
+                    document.getElementById("viewDiv").style.cursor = "auto";
+                }
+
+            });
+    </script>
+</head>
+
+<body>
+<div id="viewDiv"></div>
+
+<div class="listView">
+    <div class="listClass">
+        <div class="text" class="text ">
+            <p><span>图层数据</span></p>
+        </div>
+        <ul id="ulClass">
+            <li><span>序号</span><span>行政区划</span><span>地块数量</span></li>
+        </ul>
+    </div>
+
+    <div class="listView pointClass">
+        <div class="text" class="text ">
+            <p><span>点属性展示</span></p>
+        </div>
+        <div id="atclass">
+            <div><span>序号</span><span>行政区划</span><span>地块数量</span></div>
+
+        </div>
+    </div>
+</div>
+
+<div class="listView leftListView">
+    <div class="listClass">
+        <div class="text" class="text ">
+            <p><span>数据库获取数据</span></p>
+        </div>
+        <ul id="ulLeftClass">
+            <li><span>序号</span><span>行政区划</span><span>地块数量</span></li>
+        </ul>
+    </div>
+
+    <div class="listView pointClass">
+        <div class="text" class="text ">
+            <p><span>点属性展示</span></p>
+        </div>
+        <div id="atLeftClass">
+            <div><span>序号</span><span>行政区划</span><span>地块数量</span></div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
